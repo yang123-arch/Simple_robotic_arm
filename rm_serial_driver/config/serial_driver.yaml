@@ -1,0 +1,14 @@
+/rm_serial_driver:
+  ros__parameters:
+    device_name: /tmp/ttyV0
+    baud_rate: 115200
+    flow_control: none
+    parity: none
+    stop_bits: "1"
+    feedback_rate_hz: 50.0
+    feedback_status: 1
+    feedback_error_code: 0
+    arm_cmd_topic: /arm_controller/joint_trajectory
+    gripper_cmd_topic: /gripper_controller/joint_trajectory
+    cmd_duration_sec: 0.25
+    cmd_timeout_ms: 3000
