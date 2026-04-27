@@ -75,6 +75,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Includes/Bottom_layer/CRC_check.c
     Includes/Bottom_layer/uart_driver.c
     Includes/Bottom_layer/Motor_driver.c
+    Includes/Bottom_layer/protocol.c
     Includes/Application_layer/pid.c
     Includes/Application_layer/uart_task.c
     Includes/Application_layer/robotic_arm.c

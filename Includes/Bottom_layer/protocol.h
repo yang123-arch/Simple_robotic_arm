@@ -1,19 +1,14 @@
-#ifndef UART_TASK_H
-#define UART_TASK_H
+#ifndef PROTOCOL_H
+#define PROTOCOL_H
 
 #include <stdint.h>
-
-#include "RingBuffer.h"
-#include "protocol.h"
-#include "uart_driver.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
- * ==========================================================================
- * 机械臂 HIL 仿真串口通信协议 — 帧格式定义
+/* ==========================================================================
+ * 机械臂 HIL 仿真串口通信协议
  *
  * 架构: STM32(PID控制器) ←→ UART ←→ ROS2节点 ←→ Gazebo(电调仿真)
  * 控制频率: 1kHz
@@ -35,52 +30,55 @@ extern "C" {
  * CRC16 覆盖: 全部字段 (含 SOF，不含 CRC 自身)
  * 保留扩展区 (offset 24..29): 当前填零，留给未来扩展（如速度反馈）
  * 多字节字段均为小端序 (Little-Endian)
+ * CRC 多项式: 0x8005, 初始值 0xFFFF (与 CRC_check.h 一致)
  * 多字节字段均为小端序 (Little-Endian)
- * ==========================================================================
- */
+ * ========================================================================== */
 
-/* 环形缓冲区大小（字节数，element_size=1） */
-#define UART_TASK_RING_BUFFER_SIZE 1024U
+/* 帧起始符 */
+#define PROTOCOL_SOF0 0xA5U
+#define PROTOCOL_SOF1 0x5AU
 
-/**
- * @brief 帧解析状态机
- */
-typedef enum {
-  UART_TASK_PARSE_STATE_SEARCH_SOF0 = 0, /* 搜索帧起始符 0xA5 */
-  UART_TASK_PARSE_STATE_SEARCH_SOF1,     /* 搜索帧起始符 0x5A */
-  UART_TASK_PARSE_STATE_READ_HEADER,     /* 读取 SEQ + CMD (2 字节) */
-  UART_TASK_PARSE_STATE_READ_REMAINING,  /* 读取 Payload + CRC16 */
-} UartTaskParseState_t;
+/* 命令 ID */
+#define PROTOCOL_CMD_TORQUE_CMD 0x01U // STM32→Gazebo: 力矩命令
+#define PROTOCOL_CMD_MOTOR_FB   0x02U // Gazebo→STM32: 电机角度反馈
 
-/**
- * @brief 解析结果状态
- */
-typedef enum {
-  UART_TASK_PARSE_NONE = 0,         /* 无有效帧（参数错误或缓冲区空） */
-  UART_TASK_PARSE_OK,               /* 解析成功，得到一帧有效数据 */
-  UART_TASK_PARSE_NEED_MORE_DATA,   /* 数据不足，需要更多字节 */
-} UartTaskParseStatus_t;
+/* 帧长度 */
+#define PROTOCOL_TORQUE_CMD_FRAME_SIZE 16U
+#define PROTOCOL_MOTOR_FB_FRAME_SIZE   32U
+#define PROTOCOL_MAX_FRAME_SIZE        32U
 
-/**
- * @brief UART 解析器（字节级环形缓冲区 + 状态机 + 统计）
- */
-typedef struct {
-  RingBuffer ring_buffer;
-  uint8_t frame_buffer[PROTOCOL_MAX_FRAME_SIZE]; /* 当前帧累积缓冲区 */
-  uint8_t frame_index;                           /* 当前帧已收集字节数 */
-  uint8_t expected_frame_size;                   /* 期望帧长（CMD 确定后设置） */
-  UartTaskParseState_t state;                    /* 当前解析状态 */
+/* 帧头长度: SOF(2) + SEQ(1) + CMD(1) */
+#define PROTOCOL_HEADER_SIZE 4U
+/* CRC16 长度 */
+#define PROTOCOL_CRC_SIZE 2U
 
-  /* 统计信息 */
-  uint32_t overflow_bytes;
-  uint32_t dropped_bytes;
-  uint32_t checksum_error_count;
-} UartTaskParser_t;
+/* 电机数量 */
+#define PROTOCOL_MOTOR_COUNT 5U
 
-extern UartTaskParser_t parser_uart1;
+/* 根据命令字获取对应帧长度 */
+uint8_t protocol_get_frame_size(uint8_t cmd);
+
+/* 打包命令帧 (STM32 → Gazebo) */
+void protocol_pack_torque_cmd(uint8_t frame[PROTOCOL_TORQUE_CMD_FRAME_SIZE],
+                              uint8_t seq, const int16_t torques[PROTOCOL_MOTOR_COUNT]);
+
+/* 打包反馈帧 (Gazebo → STM32) */
+void protocol_pack_motor_fb(uint8_t frame[PROTOCOL_MOTOR_FB_FRAME_SIZE],
+                            uint8_t seq, const float angles[PROTOCOL_MOTOR_COUNT]);
+
+/* 解包命令帧，成功返回 1 */
+int protocol_unpack_torque_cmd(const uint8_t frame[PROTOCOL_TORQUE_CMD_FRAME_SIZE],
+                               int16_t torques[PROTOCOL_MOTOR_COUNT], uint8_t *seq);
+
+/* 解包反馈帧，成功返回 1 */
+int protocol_unpack_motor_fb(const uint8_t frame[PROTOCOL_MOTOR_FB_FRAME_SIZE],
+                             float angles[PROTOCOL_MOTOR_COUNT], uint8_t *seq);
+
+/* 验证帧 CRC16，成功返回 1 */
+int protocol_verify_frame(const uint8_t *frame, uint8_t frame_size);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* UART_TASK_H */
+#endif /* PROTOCOL_H */

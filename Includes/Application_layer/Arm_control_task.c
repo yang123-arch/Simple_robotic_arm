@@ -41,5 +41,8 @@ void Control_Task(void *argument) {
         &(robotic_arm_state.pid_gripper_PI),
         (Motor *)(&robotic_arm_state.gripper
                        .buffer[robotic_arm_state.gripper.busy_buffer_index]));
+
+    /* 所有关节 PID 计算完成后，打包发送一帧力矩命令 */
+    Robotic_Arm_SendCommand();
   }
 }

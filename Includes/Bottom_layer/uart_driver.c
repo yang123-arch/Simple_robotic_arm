@@ -92,9 +92,11 @@ UartDmaIdleRx_HandleEventFromISR(UartDmaIdleRx_t *ctx, uint16_t size,
   if (UartDmaIdleRx_StartDma(ctx) != HAL_OK) {
     Error_Handler();
   }
-  RingBuffer_Write(&(parser->ring_buffer),
-                   ctx->uart_data.buffer[ctx->uart_data.busy_buffer_index],
-                   size);
+  if (RingBuffer_Write(&(parser->ring_buffer),
+                        ctx->uart_data.buffer[ctx->uart_data.busy_buffer_index],
+                        size) == RING_BUFFER_ERROR) {
+    parser->overflow_bytes += size;
+  }
 
   // 发 FreeRTOS 任务通知，唤醒应用层任务
   if (ctx->task_to_notify != NULL) {
