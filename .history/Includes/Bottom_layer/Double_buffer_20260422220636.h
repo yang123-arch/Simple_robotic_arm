@@ -1,0 +1,39 @@
+#ifndef BOTTOM_LAYER_DOUBLE_BUFFER_H
+#define BOTTOM_LAYER_DOUBLE_BUFFER_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief 通用双缓冲上下文
+ *
+ * 设计目标：
+ * 1. 与具体外设解耦，仅负责双缓冲切换与事件发布/提取
+ * 2. 兼容 ISR(生产者) + 任务(消费者) 的典型使用模式
+ */
+typedef struct {
+  uint8_t *buffer[2];
+  uint16_t buffer_size;
+
+  volatile uint8_t active_buffer_index;
+  volatile uint8_t event_ready;
+} DoubleBuffer_t;
+
+typedef struct {
+  void (*init_Buffer)(
+      DoubleBuffer_t *ctx, uint8_t *buffer0, uint8_t *buffer1,
+      uint16_t buffer_size); //初始化双缓冲上下文，设置缓冲区指针和大小
+  void (*reset_Buffer)(DoubleBuffer_t *ctx); //重置双缓冲状态，清空数据
+  void (*Buffer_event)(DoubleBuffer_t *ctx,
+                       uint8_t **buffer); //切换缓冲区并获取当前活动缓冲区指针
+
+} DoubleBuffer_Control;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BOTTOM_LAYER_DOUBLE_BUFFER_H */

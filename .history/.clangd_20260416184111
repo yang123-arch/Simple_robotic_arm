@@ -1,0 +1,10 @@
+CompileFlags:
+  CompilationDatabase: build/Debug
+  Compiler: arm-none-eabi-gcc
+
+Diagnostics:
+  Suppress:
+    - pp_file_not_found
+
+Index:
+  Background: Build

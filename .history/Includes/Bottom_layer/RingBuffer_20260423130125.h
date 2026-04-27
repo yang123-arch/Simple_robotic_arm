@@ -1,0 +1,91 @@
+#ifndef RING_BUFFER_H
+#define RING_BUFFER_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief 返回值定义
+ */
+enum {
+  RING_BUFFER_ERROR = 0U,
+  RING_BUFFER_SUCCESS = 1U,      // 成功且未跨尾部
+  RING_BUFFER_SUCCESS_COIL = 2U, // 成功且发生回卷
+};
+
+typedef struct {
+  uint8_t *buffer; // 环形缓冲区起始地址
+
+  uint32_t read_index;   // 读索引（单调递增计数器）
+  uint32_t write_index;  // 写索引（单调递增计数器）
+  uint32_t max_elements; // 环形缓冲区元素最大容量
+} RingBuffer;
+
+typedef struct {
+
+} RingBuffer_Control;
+
+/**
+ * @brief 获取未读元素个数
+ *
+ * @note read_index / write_index 为“单调递增计数器”（不强制模回卷）。
+ */
+uint32_t ringBuffer_GetUnreadCount(uint32_t read_index, uint32_t write_index,
+                                   uint32_t max_elements);
+
+/**
+ * @brief 获取剩余可写元素个数
+ */
+uint32_t ringBuffer_GetFreeCount(uint32_t read_index, uint32_t write_index,
+                                 uint32_t max_elements);
+
+/**
+ * @brief 写入多个元素
+ *
+ * @param write_index 写索引（单调递增计数器，函数内部自增）
+ * @param read_index 读索引（单调递增计数器）
+ * @param src_data 源数据
+ * @param elem_count 写入元素个数
+ * @param element_size 每个元素大小（字节）
+ * @param max_elements 环形缓冲区元素容量
+ * @param buffer 缓冲区起始地址（长度需 >= max_elements * element_size）
+ * @return RING_BUFFER_ERROR / RING_BUFFER_SUCCESS / RING_BUFFER_SUCCESS_COIL
+ */
+uint8_t ringBuffer_Write(uint32_t *write_index, uint32_t read_index,
+                         const uint8_t *src_data, uint32_t elem_count,
+                         uint64_t element_size, uint32_t max_elements,
+                         uint8_t *buffer);
+
+/**
+ * @brief 读取指定数量元素
+ *
+ * @param read_index 读索引（单调递增计数器，函数内部自增）
+ * @param write_index 写索引（单调递增计数器）
+ * @param elem_count 读取元素个数
+ * @param element_size 每个元素大小（字节）
+ * @param max_elements 环形缓冲区元素容量
+ * @param buffer 缓冲区起始地址
+ * @param output_data 输出缓冲区
+ * @return RING_BUFFER_ERROR / RING_BUFFER_SUCCESS / RING_BUFFER_SUCCESS_COIL
+ */
+uint8_t ringBuffer_Read(uint32_t *read_index, uint32_t write_index,
+                        uint32_t elem_count, uint64_t element_size,
+                        uint32_t max_elements, const uint8_t *buffer,
+                        uint8_t *output_data);
+
+/**
+ * @brief 一次性读取所有未读元素
+ * @return 实际读取元素个数
+ */
+uint32_t ringBuffer_ReadAll(uint32_t *read_index, uint32_t write_index,
+                            uint64_t element_size, uint32_t max_elements,
+                            const uint8_t *buffer, uint8_t *output_data);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* RING_BUFFER_H */

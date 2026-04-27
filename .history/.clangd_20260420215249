@@ -1,0 +1,21 @@
+CompileFlags:
+  # 1. 指定编译命令数据库路径（根据你实际 build 目录调整）
+  CompilationDatabase: build/Debug
+  
+  # 2. 强制 clangd 使用 ARM 交叉编译目标（核心修复！）
+  Add:
+    - --target=arm-none-eabi
+    - -mcpu=cortex-m4
+    - -mthumb
+    - -mfloat-abi=hard
+    - -mfpu=fpv4-sp-d16
+    # 如果你知道交叉编译器的具体路径，也可以显式指定（可选）
+    # - --sysroot=/path/to/arm-none-eabi/sysroot
+
+Diagnostics:
+  # 3. 只在实在找不到头文件时才抑制（不建议一开始就全关）
+  Suppress:
+    # - pp_file_not_found  # 先注释掉这行，看看能不能真的找到头文件
+
+Index:
+  Background: Build
